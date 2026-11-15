@@ -86,3 +86,17 @@ Makefile
 CMakeLists.txt
 Plugins/Developer/RiderLink/
 
+
+# IDE and build project files
+.vscode/
+.idea/
+.kdev4/
+*.code-workspace
+*.kdev4
+*.workspace
+*.pro
+*.pri
+Makefile
+CMakeLists.txt
+DaemonCodeCompletionFolders.txt
+DaemonCodeLitePreProcessor.txt
