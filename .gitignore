@@ -73,3 +73,16 @@ Plugins/**/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+# Others
+.idea/
+.kdev4/
+*.code-workspace
+*.kdev4
+*.pro
+*.pri
+*.workspace
+Makefile
+CMakeLists.txt
+Plugins/Developer/RiderLink/
+
