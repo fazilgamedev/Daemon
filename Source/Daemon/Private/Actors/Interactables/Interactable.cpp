@@ -50,13 +50,7 @@ void AInteractable::Tick(float DeltaTime)
 
 void AInteractable::OnInteract_Implementation(ABasePlayer* Interactor)
 {
-	if (GetOwner()) return;
-	if (!Interactor) return;
-	PickupModel->SetSimulatePhysics(false);
-	PickupModel->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	CapsuleCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	AttachToComponent(Interactor->GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Socket);
-	SetOwner(Interactor);
+	UE_LOG(LogTemp, Warning, TEXT("The Object being interacted on is %s"), *GetName());
 }
 
 

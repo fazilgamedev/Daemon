@@ -34,41 +34,6 @@ void AWeapon::Use_Implementation(ABasePlayer* User)
 {
 	Super::Use_Implementation(User);
 	
-	SR_Use(User);
-}
-
-void AWeapon::StopUse_Implementation()
-{
-	Super::StopUse_Implementation();
-	
-	SR_StopUse();
-}
-
-void AWeapon::SR_StopUse_Implementation()
-{
-	GetWorldTimerManager().ClearTimer(UseHandle);
-}
-
-void AWeapon::LineTrace(ABasePlayer* User)
-{
-	FVector S = User->Camera->GetComponentLocation();
-	FVector E = S + Range * User->GetBaseAimRotation().Vector();
-	FCollisionQueryParams Params;
-	Params.AddIgnoredActor(this);
-	Params.AddIgnoredActor(User);
-	if (bTraceDebug) DrawDebugLine(GetWorld(), S, E, FColor::Red, false, 2.f, 0, 1.f);
-	bool bHit = GetWorld()->LineTraceSingleByChannel(OutHit, S, E, ECC_Visibility, Params);
-	if (bHit)
-	{
-		AActor* HitActor = OutHit.GetActor();
-		if (!HitActor) return;
-		UE_LOG(LogTemp, Warning, TEXT("Name of the hit actor is %s"), *OutHit.GetActor()->GetName());
-		UGameplayStatics::ApplyDamage(HitActor, Damage, User->PC_Ref, User, UDamageType::StaticClass());
-	}
-}
-
-void AWeapon::SR_Use_Implementation(ABasePlayer* User)
-{
 	if (!User) return;
 	UseDelegate.BindUObject(this, &AWeapon::LineTrace, User);
 	switch (WeaponType)
@@ -91,6 +56,31 @@ void AWeapon::SR_Use_Implementation(ABasePlayer* User)
 			break;
 		}
 		break;
+	}
+}
+
+void AWeapon::StopUse_Implementation()
+{
+	Super::StopUse_Implementation();
+	
+	GetWorldTimerManager().ClearTimer(UseHandle);
+}
+
+void AWeapon::LineTrace(ABasePlayer* User)
+{
+	FVector S = User->Camera->GetComponentLocation();
+	FVector E = S + Range * User->GetBaseAimRotation().Vector();
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+	Params.AddIgnoredActor(User);
+	if (bTraceDebug) DrawDebugLine(GetWorld(), S, E, FColor::Red, false, 2.f, 0, 1.f);
+	bool bHit = GetWorld()->LineTraceSingleByChannel(OutHit, S, E, ECC_Visibility, Params);
+	if (bHit)
+	{
+		AActor* HitActor = OutHit.GetActor();
+		if (!HitActor) return;
+		UE_LOG(LogTemp, Warning, TEXT("Name of the hit actor is %s"), *OutHit.GetActor()->GetName());
+		UGameplayStatics::ApplyDamage(HitActor, Damage, User->PC_Ref, User, UDamageType::StaticClass());
 	}
 }
 

@@ -39,15 +39,6 @@ public:
 	
 	UFUNCTION()
 	void OnRep_Health(float OldHealth);
-	
-	UFUNCTION(NetMulticast, Reliable)
-	void MC_OnTakeDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser);
-	
-	UFUNCTION(Server, Reliable)
-	void SR_OnTakeDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser);
-	
-	UFUNCTION()
-	void OnTakeDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser);
 
 protected:
 	// Called when the game starts
@@ -60,14 +51,11 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
-	UFUNCTION(NetMulticast, Reliable)
-	void MC_Heal(float HealAmount);
-	
 	UFUNCTION(Server, Reliable)
 	void SR_Heal(float HealAmount);
 	
-	UFUNCTION(BlueprintCallable)
-	void Heal(float HealAmount);
+	UFUNCTION(Server, Reliable)
+	void SR_OnTakeDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser);
 	
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	float GetHealth() const { return Health; }

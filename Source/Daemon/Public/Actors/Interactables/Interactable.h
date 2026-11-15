@@ -25,9 +25,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UCapsuleComponent* CapsuleCollision;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName Socket;
-	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -37,6 +34,6 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	/*virtual */void OnInteract(ABasePlayer* Interactor);
+	void OnInteract(ABasePlayer* Interactor);
 	
 };

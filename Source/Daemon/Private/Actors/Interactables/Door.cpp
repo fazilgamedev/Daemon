@@ -4,6 +4,8 @@
 #include "Actors/Interactables/Door.h"
 
 #include "Actors/Items/Item.h"
+#include "Characters/BasePlayer.h"
+#include "Net/UnrealNetwork.h"
 
 
 // Sets default values
@@ -14,6 +16,13 @@ ADoor::ADoor()
 	
 	DoorMesh = CreateDefaultSubobject<UStaticMeshComponent>(FName("DoorMesh"));
 	DoorMesh->SetupAttachment(RootComponent);
+	
+	TargetYaw = 0.f;
+}
+
+void ADoor::OnRep_TargetYaw()
+{
+	GetWorldTimerManager().SetTimer(DoorTimer, this, &ADoor::RotateDoor, .01f, true);
 }
 
 // Called when the game starts or when spawned
@@ -26,19 +35,13 @@ void ADoor::BeginPlay()
 void ADoor::RotateDoor()
 {
 	float DoorYaw= DoorMesh->GetRelativeRotation().Yaw;
-	float Target = bIsOpen ? 0.f : 90.f;
-	if (!FMath::IsNearlyEqual(DoorYaw, Target, 1.f))
+	if (!FMath::IsNearlyEqual(DoorYaw, TargetYaw, 1.f))
 	{
-		float NewYaw = FMath::FInterpTo(DoorYaw, Target, GetWorld()->GetDeltaSeconds(), 5.f);
+		float NewYaw = FMath::FInterpTo(DoorYaw, TargetYaw, .01f, 5.f);
 		DoorMesh->SetRelativeRotation(FRotator(0.f, NewYaw, 0.f));
-		GetWorldTimerManager().SetTimer(DoorTimer, this, &ADoor::RotateDoor, .01f, true);
-	}else if (DoorYaw > 85.f)
+	}else
 	{
-		bIsOpen = true;
-		GetWorldTimerManager().ClearTimer(DoorTimer);
-	}else if (DoorYaw < 5.f)
-	{
-		bIsOpen = false;
+		DoorMesh->SetRelativeRotation(FRotator(0.f, TargetYaw, 0.f));
 		GetWorldTimerManager().ClearTimer(DoorTimer);
 	}
 }
@@ -49,9 +52,25 @@ void ADoor::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+void ADoor::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(ADoor, TargetYaw);
+}
+
 void ADoor::OnInteract_Implementation(ABasePlayer* Interactor)
 {
-	// Super::OnInteract_Implementation(Interactor);
-	RotateDoor();
+	Super::OnInteract_Implementation(Interactor);
+	
+	if (!(HasAuthority() && Interactor)) return;
+	if (FMath::IsNearlyZero(TargetYaw, 1.f))
+	{
+		TargetYaw = (FVector::DotProduct(GetActorForwardVector(), (Interactor->GetActorLocation() - GetActorLocation()).GetSafeNormal())) >= 0.f ? -90 : 90.f;
+	}else
+	{
+		TargetYaw = 0.f;
+	}
+	OnRep_TargetYaw();
 }
 

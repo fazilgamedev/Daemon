@@ -20,8 +20,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* DoorMesh;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bIsOpen;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_TargetYaw)
+	float TargetYaw;
+	
+	UFUNCTION()
+	void OnRep_TargetYaw();
 
 protected:
 	// Called when the game starts or when spawned
@@ -36,6 +39,8 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+	
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	virtual void OnInteract_Implementation(ABasePlayer* Interactor) override;
 };

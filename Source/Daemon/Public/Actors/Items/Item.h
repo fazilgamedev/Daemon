@@ -22,6 +22,9 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	bool bIsHeld;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName Socket;
 
 protected:
 	// Called when the game starts or when spawned
@@ -36,7 +39,7 @@ public:
 	virtual void OnInteract_Implementation(ABasePlayer* Interactor) override;
 	
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	/*virtual */void OnDetach(ABasePlayer* Interactor, float VelocityToDetachAt);
+	void OnDetach(ABasePlayer* Interactor, float VelocityToDetachAt);
 	
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void Use(ABasePlayer* User);

@@ -44,9 +44,16 @@ void AItem::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifet
 void AItem::OnInteract_Implementation(ABasePlayer* Interactor)
 {
 	Super::OnInteract_Implementation(Interactor);
+	if (GetOwner()) return;
+	if (!Interactor) return;
+	PickupModel->SetSimulatePhysics(false);
+	PickupModel->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	CapsuleCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	AttachToComponent(Interactor->GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Socket);
+	SetOwner(Interactor);
 	PickupModel->SetVisibility(false);
 	ItemModel->SetVisibility(true);
-	if (Interactor->CurrentItem) Interactor->MC_DropCurrent_Implementation();
+	if (Interactor->CurrentItem) Interactor->SR_DropCurrent_Implementation();
 	Interactor->CurrentItem = this;
 }
 

@@ -35,7 +35,7 @@ ABasePlayer::ABasePlayer()
 	PPComp->bUnbound = false;
 	
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(FName("HealthComponent"));
-	HealthComponent->OnDeathSignature.AddDynamic(this, &ABasePlayer::OnDeath);
+	HealthComponent->OnDeathSignature.AddDynamic(this, &ABasePlayer::SR_OnDeath);
 	
 }
 
@@ -71,15 +71,17 @@ void ABasePlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	EIC->BindAction(IA_Jump, ETriggerEvent::Completed, this, &ABasePlayer::StopJumping);
 	EIC->BindAction(IA_Move, ETriggerEvent::Triggered, this, &ABasePlayer::Move);
 	EIC->BindAction(IA_Look, ETriggerEvent::Triggered, this, &ABasePlayer::Look);
-	EIC->BindAction(IA_Interact, ETriggerEvent::Started, this, &ABasePlayer::Interact);
-	EIC->BindAction(IA_DropCurrent, ETriggerEvent::Triggered, this, &ABasePlayer::DropCurrent);
-	EIC->BindAction(IA_UseItem, ETriggerEvent::Started, this, &ABasePlayer::UseItem);
-	EIC->BindAction(IA_UseItem, ETriggerEvent::Completed, this, &ABasePlayer::StopUseItem);
+	EIC->BindAction(IA_Interact, ETriggerEvent::Started, this, &ABasePlayer::SR_Interact);
+	EIC->BindAction(IA_DropCurrent, ETriggerEvent::Triggered, this, &ABasePlayer::SR_DropCurrent);
+	EIC->BindAction(IA_UseItem, ETriggerEvent::Started, this, &ABasePlayer::SR_Use);
+	EIC->BindAction(IA_UseItem, ETriggerEvent::Completed, this, &ABasePlayer::SR_StopUse);
 }
 
 void ABasePlayer::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(ABasePlayer, CurrentItem);
 }
 
 void ABasePlayer::Move(const FInputActionValue& Value)
@@ -99,70 +101,41 @@ void ABasePlayer::Look(const FInputActionValue& Value)
 	AddControllerYawInput(Vec.X * HSen);
 }
 
-void ABasePlayer::Interact(const FInputActionValue& Value)
+void ABasePlayer::OnRep_CurrentItem()
 {
-	// UE_LOG(LogTemp, Warning, TEXT("Interacting"));
-	if (!HasAuthority()) SR_Interact();
-	else MC_Interact();
+	if (!CurrentItem) { UE_LOG(LogTemp, Warning, TEXT("Current Item has been set to nullptr")); return; }
+	UE_LOG(LogTemp, Warning, TEXT("Current Item has been set to %s"), *CurrentItem->GetName());
 }
 
-void ABasePlayer::DropCurrent(const FInputActionValue& Value)
-{
-	if (!HasAuthority()) SR_DropCurrent();
-	else MC_DropCurrent();
-}
-
-void ABasePlayer::OnDeath()
-{
-	if (!HasAuthority()) SR_OnDeath();
-	else MC_OnDeath();
-}
-
-void ABasePlayer::UseItem()
-{
-	if (!CurrentItem) return;
-	CurrentItem->Use(this);
-}
-
-void ABasePlayer::StopUseItem()
+void ABasePlayer::SR_StopUse_Implementation()
 {
 	if (!CurrentItem) return;
 	CurrentItem->StopUse();
 }
 
-void ABasePlayer::MC_OnDeath_Implementation()
+void ABasePlayer::SR_Use_Implementation()
+{
+	if (!CurrentItem) return;
+	CurrentItem->Use(this);
+}
+
+
+void ABasePlayer::SR_OnDeath_Implementation()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Dying"));
 	Destroy();
 }
 
-void ABasePlayer::SR_OnDeath_Implementation()
-{
-	MC_OnDeath();
-}
-
-void ABasePlayer::MC_Interact_Implementation()
+void ABasePlayer::SR_Interact_Implementation()
 {
 	TArray<AActor*> Actors;
 	GetOverlappingActors(Actors, AInteractable::StaticClass());
-	// UE_LOG(LogTemp, Warning, TEXT("In MC"));
 	if (Actors.Num() < 1 || !IsValid(Actors[0])) return;
-	// UE_LOG(LogTemp, Warning, TEXT("%s"), *Actors[0]->GetName());
 	AInteractable* New= Cast<AInteractable>(Actors[0]);
 	New->OnInteract(this);
 }
 
-void ABasePlayer::MC_DropCurrent_Implementation()
-{
-	if (CurrentItem) { CurrentItem->OnDetach(this, 500.f); CurrentItem = nullptr; }
-}
-
-void ABasePlayer::SR_Interact_Implementation()
-{
-	MC_Interact();
-}
-
 void ABasePlayer::SR_DropCurrent_Implementation()
 {
-	MC_DropCurrent();
+	if (CurrentItem) { CurrentItem->OnDetach(this, 500.f); CurrentItem = nullptr; }
 }

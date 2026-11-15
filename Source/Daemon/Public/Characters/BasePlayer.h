@@ -69,14 +69,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float HSen;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_CurrentItem)
 	AItem* CurrentItem;
-	
-	// UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	// float MaxHealth;
-	//
-	// UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	// float CurrentHealth;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UMannequinAnimInstance* MannyAnimRef;
@@ -99,33 +93,11 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	void Look(const FInputActionValue& Value);
-	
-	UFUNCTION(BlueprintCallable)
-	void Interact(const FInputActionValue& Value);
-	
-	UFUNCTION(BlueprintCallable)
-	void DropCurrent(const FInputActionValue& Value);
-	
-	UFUNCTION()
-	void OnDeath();
-	
-	UFUNCTION(BlueprintCallable)
-	void UseItem();
-
-	UFUNCTION(BlueprintCallable)
-	void StopUseItem();
-	
 
 protected:
 	
-	UFUNCTION(NetMulticast, Reliable)
-	void MC_Interact();
-	
-	UFUNCTION(NetMulticast, Reliable)
-	void MC_DropCurrent();
-	
-	UFUNCTION(NetMulticast, Reliable)
-	void MC_OnDeath();
+	UFUNCTION()
+	void OnRep_CurrentItem();
 		
 	UFUNCTION(Server, Reliable)
 	void SR_Interact();
@@ -135,5 +107,11 @@ protected:
 	
 	UFUNCTION(Server, Reliable)
 	void SR_OnDeath();
+	
+	UFUNCTION(Server, Reliable)
+	void SR_Use();
+	
+	UFUNCTION(Server, Reliable)
+	void SR_StopUse();
 	
 };

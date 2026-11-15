@@ -35,29 +35,6 @@ void UHealthComponent::OnRep_Health(float OldHealth)
 	}
 }
 
-void UHealthComponent::MC_OnTakeDamage_Implementation(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
-	AController* InstigatedBy, AActor* DamageCauser)
-{
-	if (Damage < 0.f || bIsDead) return;
-	Health = FMath::Clamp(Health - Damage, 0.f, MaxHealth);
-	UE_LOG(LogTemp, Warning, TEXT("Health: %f"), Health);
-	OnHealthChangedSignature.Broadcast(this, Health, -Damage);
-	if (Health <= 0.f) { bIsDead = true; OnDeathSignature.Broadcast(); }
-}
-
-void UHealthComponent::SR_OnTakeDamage_Implementation(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
-                                                      AController* InstigatedBy, AActor* DamageCauser)
-{
-	MC_OnTakeDamage(DamagedActor, Damage, DamageType, InstigatedBy, DamageCauser);
-}
-
-void UHealthComponent::OnTakeDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
-                                    AController* InstigatedBy, AActor* DamageCauser)
-{
-	if (GetOwnerRole() != ROLE_Authority) SR_OnTakeDamage(DamagedActor, Damage, DamageType, InstigatedBy, DamageCauser);
-	else MC_OnTakeDamage(DamagedActor, Damage, DamageType, InstigatedBy, DamageCauser);
-}
-
 // Called when the game starts
 void UHealthComponent::BeginPlay()
 {
@@ -68,9 +45,9 @@ void UHealthComponent::BeginPlay()
 	Health = MaxHealth;
 	if (!GetOwner()) return;
 	if (GetOwnerRole() != ROLE_Authority) return;
-	GetOwner()->OnTakeAnyDamage.AddDynamic(this, &UHealthComponent::OnTakeDamage);
-	
+	GetOwner()->OnTakeAnyDamage.AddDynamic(this, &UHealthComponent::SR_OnTakeDamage);
 	OnDeathSignature.AddDynamic(this, &UHealthComponent::DefaultDeath);
+
 }
 
 
@@ -91,7 +68,7 @@ void UHealthComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 	DOREPLIFETIME(UHealthComponent, Health);
 }
 
-void UHealthComponent::MC_Heal_Implementation(float HealAmount)
+void UHealthComponent::SR_Heal_Implementation(float HealAmount)
 {
 	if (GetOwnerRole() != ROLE_Authority || HealAmount <= 0.f || bIsDead) return;
 	float OldHealth = Health;
@@ -100,15 +77,14 @@ void UHealthComponent::MC_Heal_Implementation(float HealAmount)
 	if (ActualHealed > 0.f) OnHealthChangedSignature.Broadcast(this, Health, ActualHealed);
 }
 
-void UHealthComponent::SR_Heal_Implementation(float HealAmount)
+void UHealthComponent::SR_OnTakeDamage_Implementation(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
+													  AController* InstigatedBy, AActor* DamageCauser)
 {
-	MC_Heal(HealAmount);
-}
-
-void UHealthComponent::Heal(float HealAmount)
-{
-	if (GetOwnerRole() != ROLE_Authority) SR_Heal(HealAmount);
-	else MC_Heal(HealAmount);
+	if (Damage < 0.f || bIsDead) return;
+	Health = FMath::Clamp(Health - Damage, 0.f, MaxHealth);
+	UE_LOG(LogTemp, Warning, TEXT("Health: %f"), Health);
+	OnHealthChangedSignature.Broadcast(this, Health, -Damage);
+	if (Health <= 0.f) { bIsDead = true; OnDeathSignature.Broadcast(); }
 }
 
 void UHealthComponent::DefaultDeath()

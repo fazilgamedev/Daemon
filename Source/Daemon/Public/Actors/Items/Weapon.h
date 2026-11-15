@@ -70,12 +70,6 @@ public:
 	
 	virtual void StopUse_Implementation() override;
 	
-	UFUNCTION(Server, Reliable)
-	void SR_Use(ABasePlayer* User);
-	
-	UFUNCTION(Server, Reliable)
-	void SR_StopUse();
-	
 	UFUNCTION()
 	void LineTrace(ABasePlayer* User);
 };
