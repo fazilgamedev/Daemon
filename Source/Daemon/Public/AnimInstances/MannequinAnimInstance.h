@@ -6,6 +6,7 @@
 #include "Animation/AnimInstance.h"
 #include "MannequinAnimInstance.generated.h"
 
+class AItem;
 class ABasePlayer;
 /**
  * 
@@ -21,6 +22,9 @@ public:
 	ABasePlayer* PlayerRef;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	AItem* CurrentItem;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	FVector Velocity;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -32,7 +36,22 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float Pitch;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FTransform SightTransform;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FTransform RelativeHandTransform;
+	
 	virtual void NativeInitializeAnimation() override;
 	
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
+	
+	UFUNCTION()
+	void SetSightTramsform();
+	
+	UFUNCTION()
+	void SetRelativeSightTransform();
+	
+	UFUNCTION()
+	void OnCurrentItemChanged();
 };

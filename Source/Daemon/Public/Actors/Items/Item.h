@@ -6,6 +6,14 @@
 #include "Actors/Interactables/Interactable.h"
 #include "Item.generated.h"
 
+UENUM()
+enum class EItemType : uint8 {
+	None,
+	Item,
+	Usable,
+	Weapon
+};
+
 class USkeletalMeshComponent;
 
 UCLASS()
@@ -20,11 +28,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	USkeletalMeshComponent* ItemModel;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EItemType ItemType;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	bool bIsHeld;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName Socket;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* ItemIcon;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SightOffset;
 
 protected:
 	// Called when the game starts or when spawned

@@ -49,12 +49,13 @@ void AItem::OnInteract_Implementation(ABasePlayer* Interactor)
 	PickupModel->SetSimulatePhysics(false);
 	PickupModel->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	CapsuleCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	AttachToComponent(Interactor->GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Socket);
+	AttachToComponent(Interactor->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Socket);
 	SetOwner(Interactor);
 	PickupModel->SetVisibility(false);
 	ItemModel->SetVisibility(true);
 	if (Interactor->CurrentItem) Interactor->SR_DropCurrent_Implementation();
 	Interactor->CurrentItem = this;
+	if (HasAuthority()) Interactor->OnRep_CurrentItem();
 }
 
 void AItem::StopUse_Implementation()
@@ -80,6 +81,7 @@ void AItem::OnDetach_Implementation(ABasePlayer* Interactor, float VelocityToDet
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	PickupModel->AddImpulse(Interactor->GetActorForwardVector() * VelocityToDetachAt, NAME_None, true);
 	Interactor->CurrentItem = nullptr;
+	if (HasAuthority()) Interactor->OnRep_CurrentItem();
 	SetOwner(nullptr);
 }
 

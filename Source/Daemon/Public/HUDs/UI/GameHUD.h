@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "GameHUD.generated.h"
 
+class UCurrentPossession;
 class UCrosshair;
 class UHealthBar;
 /**
@@ -23,5 +24,8 @@ public:
 	
 	UPROPERTY(meta = (BindWidget))
 	UCrosshair* Crosshair;
+	
+	UPROPERTY(meta = (BindWidget))
+	UCurrentPossession* CurrentPossession;
 	
 };

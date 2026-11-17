@@ -18,6 +18,8 @@ class UCameraComponent;
 class USpringArmComponent;
 class ABasePlayerController;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCurrentItemChangedSignature);
+
 UCLASS()
 class DAEMON_API ABasePlayer : public ACharacter
 {
@@ -72,6 +74,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_CurrentItem)
 	AItem* CurrentItem;
 	
+	UFUNCTION()
+	void OnRep_CurrentItem();
+	
+	UPROPERTY()
+	FOnCurrentItemChangedSignature OnCurrentItemChangedSignature;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UMannequinAnimInstance* MannyAnimRef;
 	
@@ -95,9 +103,6 @@ public:
 	void Look(const FInputActionValue& Value);
 
 protected:
-	
-	UFUNCTION()
-	void OnRep_CurrentItem();
 		
 	UFUNCTION(Server, Reliable)
 	void SR_Interact();

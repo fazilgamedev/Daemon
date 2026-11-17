@@ -30,12 +30,15 @@ ABasePlayer::ABasePlayer()
 	Camera->SetupAttachment(CameraBoom, FName("SpringEndPoint"));
 	Camera->SetFieldOfView(120.f);
 	// Camera->bUsePawnControlRotation = true;
+	// Camera->SetupAttachment(GetMesh(), FName("head"));
 
 	PPComp = CreateDefaultSubobject<UPostProcessComponent>(FName("PPComp"));
 	PPComp->bUnbound = false;
 	
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(FName("HealthComponent"));
 	HealthComponent->OnDeathSignature.AddDynamic(this, &ABasePlayer::SR_OnDeath);
+	
+	CurrentItem = nullptr;
 	
 }
 
@@ -103,8 +106,7 @@ void ABasePlayer::Look(const FInputActionValue& Value)
 
 void ABasePlayer::OnRep_CurrentItem()
 {
-	if (!CurrentItem) { UE_LOG(LogTemp, Warning, TEXT("Current Item has been set to nullptr")); return; }
-	UE_LOG(LogTemp, Warning, TEXT("Current Item has been set to %s"), *CurrentItem->GetName());
+	OnCurrentItemChangedSignature.Broadcast();
 }
 
 void ABasePlayer::SR_StopUse_Implementation()
@@ -123,6 +125,7 @@ void ABasePlayer::SR_Use_Implementation()
 void ABasePlayer::SR_OnDeath_Implementation()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Dying"));
+	HealthComponent->Health = 0.f;
 	Destroy();
 }
 
@@ -137,5 +140,9 @@ void ABasePlayer::SR_Interact_Implementation()
 
 void ABasePlayer::SR_DropCurrent_Implementation()
 {
-	if (CurrentItem) { CurrentItem->OnDetach(this, 500.f); CurrentItem = nullptr; }
+	if (CurrentItem) { 
+		CurrentItem->OnDetach(this, 500.f);
+		CurrentItem = nullptr;
+		if (HasAuthority()) OnRep_CurrentItem();
+	}
 }

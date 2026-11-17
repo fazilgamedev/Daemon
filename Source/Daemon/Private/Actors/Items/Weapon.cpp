@@ -81,6 +81,13 @@ void AWeapon::LineTrace(ABasePlayer* User)
 		if (!HitActor) return;
 		UE_LOG(LogTemp, Warning, TEXT("Name of the hit actor is %s"), *OutHit.GetActor()->GetName());
 		UGameplayStatics::ApplyDamage(HitActor, Damage, User->PC_Ref, User, UDamageType::StaticClass());
+		MC_Fire(OutHit.ImpactPoint, OutHit.ImpactNormal.Rotation());
 	}
+}
+
+void AWeapon::MC_Fire_Implementation(FVector SpawnLocation, FRotator SpawnRotation)
+{
+	if (!HitEfx && GetWorld()) return;
+	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), HitEfx, SpawnLocation, SpawnRotation);
 }
 

@@ -4,6 +4,7 @@
 #include "Controllers/BasePlayerController.h"
 
 #include "Characters/BasePlayer.h"
+#include "HUDs/UI/CurrentPossession.h"
 #include "HUDs/UI/GameHUD.h"
 #include "HUDs/UI/HealthBar.h"
 
@@ -21,4 +22,8 @@ void ABasePlayerController::BeginPlay()
 	
 	// For HealthBar
 	if (PlayerRef->HealthComponent) GameHUD->HealthBar->InitHealthBar(PlayerRef->HealthComponent);
+	
+	// For CurrentPossession
+	if (PlayerRef) GameHUD->CurrentPossession->InitCurrentPossession(PlayerRef);
+	
 }

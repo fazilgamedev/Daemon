@@ -20,6 +20,9 @@ enum class EWeaponType : uint8 {
 	Projectile
 };
 
+class UParticleSystem;
+class ABasePlayer;
+
 UCLASS()
 class DAEMON_API AWeapon : public AItem
 {
@@ -43,6 +46,9 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float FireRate;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UParticleSystem* HitEfx;
 	
 protected:
 	// Called when the game starts or when spawned
@@ -72,4 +78,7 @@ public:
 	
 	UFUNCTION()
 	void LineTrace(ABasePlayer* User);
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void MC_Fire(FVector SpawnLocation, FRotator SpawnRotation);
 };
