@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Item.h"
+#include "Interfaces/WeaponInterface.h"
 #include "Weapon.generated.h"
 
 UENUM()
@@ -24,7 +25,7 @@ class UParticleSystem;
 class ABasePlayer;
 
 UCLASS()
-class DAEMON_API AWeapon : public AItem
+class DAEMON_API AWeapon : public AItem, public IWeaponInterface
 {
 	GENERATED_BODY()
 
@@ -49,6 +50,36 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UParticleSystem* HitEfx;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float VerticalRecoil;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float HorizontalRecoil;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SideRecoil;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float FrontRecoil;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float RightRecoil;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float UpRecoil;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Recoil_Vertical;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Recoil_Horizontal_Left;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Recoil_Horizontal_Right;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<float> RecoilVals;
 	
 protected:
 	// Called when the game starts or when spawned
@@ -81,4 +112,6 @@ public:
 	
 	UFUNCTION(NetMulticast, Reliable)
 	void MC_Fire(FVector SpawnLocation, FRotator SpawnRotation);
+	
+	virtual TArray<float> GetRecoilVals_Implementation() override;
 };

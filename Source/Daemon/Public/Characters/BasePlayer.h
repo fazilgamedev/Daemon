@@ -19,6 +19,7 @@ class USpringArmComponent;
 class ABasePlayerController;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCurrentItemChangedSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAimStateChangedSignature, bool, bADS);
 
 UCLASS()
 class DAEMON_API ABasePlayer : public ACharacter
@@ -49,6 +50,9 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UInputAction* IA_UseItem;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UInputAction* IA_Aim;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	USpringArmComponent* CameraBoom;
@@ -83,8 +87,30 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UMannequinAnimInstance* MannyAnimRef;
 	
-	UPROPERTY(Replicated)
-	float Pitch;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_bIsAiming)
+	bool bIsAiming;
+
+	UFUNCTION()
+	void OnRep_bIsAiming();
+	
+	UPROPERTY()
+	FOnAimStateChangedSignature OnAimStateChanged;
+	
+	UPROPERTY()
+	float FrontMove;
+
+	UPROPERTY()
+	float SideMove;
+	
+	UPROPERTY()
+	FVector WalkVector;
+	
+	UPROPERTY()
+	float CurrentPhase;
+
+	UPROPERTY()
+	FVector CurrentAmp;
+	
 	
 protected:
 	// Called when the game starts or when spawned
@@ -105,9 +131,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void Look(const FInputActionValue& Value);
 	
-	UFUNCTION()
-	void SetPitch();
-
+	
 protected:
 		
 	UFUNCTION(Server, Reliable)
@@ -124,6 +148,15 @@ protected:
 	
 	UFUNCTION(Server, Reliable)
 	void SR_StopUse();
+	
+	UFUNCTION(Server, Reliable)
+	void SR_ADS();
+	
+	UFUNCTION(Server, Reliable)
+	void SR_StopADS();
+	
+	
+	
 	
 	
 };

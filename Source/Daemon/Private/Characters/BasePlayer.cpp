@@ -40,6 +40,14 @@ ABasePlayer::ABasePlayer()
 	
 	CurrentItem = nullptr;
 	
+	// OnAimStateChanged.AddDynamic(this, &ABasePlayer::OnADS);
+	
+}
+
+void ABasePlayer::OnRep_bIsAiming()
+{
+	if (!(CurrentItem && CurrentItem->ItemType == EItemType::Weapon)) return;
+	OnAimStateChanged.Broadcast(bIsAiming);
 }
 
 // Called when the game starts or when spawned
@@ -54,8 +62,7 @@ void ABasePlayer::BeginPlay()
 	Subsystem->AddMappingContext(IMC_Default, 0);
 	
 	MannyAnimRef = Cast<UMannequinAnimInstance>(GetMesh()->GetAnimInstance());
-	
-	// GetMesh()->SetTickGroup(TG_PostUpdateWork);
+	if (MannyAnimRef) UE_LOG(LogTemp, Warning, TEXT("AnimBP is Valid"));
 	
 }
 
@@ -64,7 +71,24 @@ void ABasePlayer::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
-	SetPitch();
+	float Speed = GetVelocity().Size2D();
+	float TargetFreq = 0.f;
+	FVector TargetAmp = FVector::ZeroVector;
+	if(Speed > 400.f){
+		TargetFreq = 13.96f;
+		TargetAmp = FVector(2.f, 2.f, 2.f);
+	}else if(Speed > 3.f){
+		TargetFreq = 10.47f;
+		TargetAmp = FVector(.5f, .5f, .5f);
+	}else{
+		TargetFreq = 3.14;
+		TargetAmp = FVector(.12f, .12f, .12f);
+	}
+	CurrentAmp = FMath::VInterpTo(CurrentAmp, TargetAmp, DeltaTime, 5.f);
+	CurrentPhase += DeltaTime * TargetFreq;
+	if(CurrentPhase > 6.28f) CurrentPhase -= 6.28f;
+	WalkVector = FVector(FMath::Sin(CurrentPhase) * CurrentAmp.X, FMath::Cos(CurrentPhase) * CurrentAmp.Y, FMath::Sin(CurrentPhase * 2.f) * CurrentAmp.Z);
+	
 }
 
 // Called to bind functionality to input
@@ -82,6 +106,8 @@ void ABasePlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	EIC->BindAction(IA_DropCurrent, ETriggerEvent::Triggered, this, &ABasePlayer::SR_DropCurrent);
 	EIC->BindAction(IA_UseItem, ETriggerEvent::Started, this, &ABasePlayer::SR_Use);
 	EIC->BindAction(IA_UseItem, ETriggerEvent::Completed, this, &ABasePlayer::SR_StopUse);
+	EIC->BindAction(IA_Aim, ETriggerEvent::Triggered, this, &ABasePlayer::SR_ADS);
+	EIC->BindAction(IA_Aim, ETriggerEvent::Completed, this, &ABasePlayer::SR_StopADS);
 }
 
 void ABasePlayer::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -89,6 +115,7 @@ void ABasePlayer::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& Ou
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	DOREPLIFETIME(ABasePlayer, CurrentItem);
+	DOREPLIFETIME(ABasePlayer, bIsAiming);
 }
 
 void ABasePlayer::Move(const FInputActionValue& Value)
@@ -99,6 +126,9 @@ void ABasePlayer::Move(const FInputActionValue& Value)
 	const FVector R = FRotationMatrix(Yaw).GetUnitAxis(EAxis::Y);
 	AddMovementInput(F, Vec.Y);
 	AddMovementInput(R, Vec.X);	
+	if(MannyAnimRef) FrontMove = MannyAnimRef->AimAlpha > .5f ? Vec.X * .2f : Vec.X;
+	else FrontMove = Vec.X;
+	SideMove = Vec.Y * 2.f;
 }
 
 void ABasePlayer::Look(const FInputActionValue& Value)
@@ -108,9 +138,18 @@ void ABasePlayer::Look(const FInputActionValue& Value)
 	AddControllerYawInput(Vec.X * HSen);
 }
 
-void ABasePlayer::SetPitch()
+void ABasePlayer::SR_StopADS_Implementation()
 {
-	if (HasAuthority() || IsLocallyControlled()) Pitch = GetController()->GetControlRotation().Pitch;
+	if (!(CurrentItem && CurrentItem->ItemType == EItemType::Weapon)) return;
+	bIsAiming = false;
+	if (HasAuthority()) OnRep_bIsAiming(); 
+}
+
+void ABasePlayer::SR_ADS_Implementation()
+{
+	if (!(CurrentItem && CurrentItem->ItemType == EItemType::Weapon)) return;
+	bIsAiming = true;
+	if (HasAuthority()) OnRep_bIsAiming();
 }
 
 void ABasePlayer::OnRep_CurrentItem()

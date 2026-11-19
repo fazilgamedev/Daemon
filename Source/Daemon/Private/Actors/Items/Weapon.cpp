@@ -6,6 +6,7 @@
 #include "Controllers/BasePlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
+#include "AnimInstances/MannequinAnimInstance.h"
 #include "Camera/CameraComponent.h"
 #include "Characters/BasePlayer.h"
 
@@ -15,6 +16,9 @@ AWeapon::AWeapon()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	
+	RecoilVals.Init(0.f, 9);
+	
 }
 
 // Called when the game starts or when spawned
@@ -22,6 +26,17 @@ void AWeapon::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	RecoilVals[0] = VerticalRecoil;
+	RecoilVals[1] = HorizontalRecoil;
+	RecoilVals[2] = SideRecoil;
+	RecoilVals[3] = FrontRecoil;
+	RecoilVals[4] = RightRecoil;
+	RecoilVals[5] = UpRecoil;
+	RecoilVals[6] = Recoil_Vertical;
+	RecoilVals[7] = Recoil_Horizontal_Left;
+	RecoilVals[8] = Recoil_Horizontal_Right;
+	
+	for (int32 i = 0; i < 9; i++) UE_LOG(LogTemp, Warning, TEXT("%f"), RecoilVals[i]);	
 }
 
 // Called every frame
@@ -68,6 +83,10 @@ void AWeapon::StopUse_Implementation()
 
 void AWeapon::LineTrace(ABasePlayer* User)
 {
+	UMannequinAnimInstance* tmp = Cast<UMannequinAnimInstance>(User->GetMesh()->GetAnimInstance());
+	// if (User->MannyAnimRef) User->MannyAnimRef->Firing();
+	// else UE_LOG(LogTemp, Warning, TEXT("AnimBP Not valid"));
+	if (tmp) tmp->Firing();
 	FVector S = User->Camera->GetComponentLocation();
 	FVector E = S + Range * User->GetBaseAimRotation().Vector();
 	FCollisionQueryParams Params;
@@ -83,6 +102,11 @@ void AWeapon::LineTrace(ABasePlayer* User)
 		UGameplayStatics::ApplyDamage(HitActor, Damage, User->PC_Ref, User, UDamageType::StaticClass());
 		MC_Fire(OutHit.ImpactPoint, OutHit.ImpactNormal.Rotation());
 	}
+}
+
+TArray<float> AWeapon::GetRecoilVals_Implementation()
+{
+	return RecoilVals;
 }
 
 void AWeapon::MC_Fire_Implementation(FVector SpawnLocation, FRotator SpawnRotation)
