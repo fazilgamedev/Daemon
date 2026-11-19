@@ -35,9 +35,8 @@ void UMannequinAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	Velocity = PlayerRef->GetVelocity();
 	Speed = Velocity.Size2D();
 	Direction = CalculateDirection(Velocity, PlayerRef->GetActorRotation());
-	float p = PlayerRef->GetBaseAimRotation().Pitch;
-	float t = (p > 180.f ? 360 - p : -p) / 3;
-	Pitch = FMath::FInterpConstantTo(Pitch, t, DeltaSeconds, 200.f);
+	float p = (PlayerRef->IsLocallyControlled() ? PlayerRef->GetControlRotation() : PlayerRef->GetBaseAimRotation()).Pitch;
+	Pitch = (p > 180.f ? 360 - p : -p) / 3;
 	
 	if (!(CurrentItem && CurrentItem->ItemType == EItemType::Weapon))
 	{
@@ -45,19 +44,23 @@ void UMannequinAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		return;
 	}
 	SetSightTramsform();
-	SetRelativeSightTransform();
+	SetRelativeHandTransform();
 }
 
 void UMannequinAnimInstance::SetSightTramsform()
 {
 	if (!(PlayerRef && PlayerRef->CurrentItem)) return;
-	FTransform tmp = PlayerRef->Camera->GetComponentTransform().GetRelativeTransform(PlayerRef->GetMesh()->GetSocketTransform(FName("head")));
-	SightTransform = FTransform(tmp.GetRotation().Rotator(),  tmp.GetRotation().GetForwardVector() * PlayerRef->CurrentItem->SightOffset + tmp.GetLocation());
+	// PlayerRef->GetMesh()->RefreshBoneTransforms();
+	// PlayerRef->Camera->UpdateComponentToWorld();
+	const FTransform Tmp = PlayerRef->Camera->GetComponentTransform().GetRelativeTransform(PlayerRef->GetMesh()->GetSocketTransform(FName("head")));
+	SightTransform = FTransform(Tmp.GetRotation().Rotator(),  Tmp.GetRotation().GetForwardVector() * CurrentItem->SightOffset + Tmp.GetLocation());
 }
 
-void UMannequinAnimInstance::SetRelativeSightTransform()
+void UMannequinAnimInstance::SetRelativeHandTransform()
 {
-	if (!(PlayerRef && PlayerRef->CurrentItem)) return;
+	if (!(PlayerRef && CurrentItem)) return;
+	// PlayerRef->GetMesh()->RefreshBoneTransforms();
+	// CurrentItem->ItemModel->UpdateComponentToWorld();
 	RelativeHandTransform = PlayerRef->CurrentItem->ItemModel->GetSocketTransform(FName("S_Sight")).GetRelativeTransform(PlayerRef->GetMesh()->GetSocketTransform(FName("hand_r")));
 }
 

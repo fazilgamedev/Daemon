@@ -83,6 +83,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UMannequinAnimInstance* MannyAnimRef;
 	
+	UPROPERTY(Replicated)
+	float Pitch;
+	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -101,6 +104,9 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	void Look(const FInputActionValue& Value);
+	
+	UFUNCTION()
+	void SetPitch();
 
 protected:
 		
@@ -118,5 +124,6 @@ protected:
 	
 	UFUNCTION(Server, Reliable)
 	void SR_StopUse();
+	
 	
 };

@@ -55,12 +55,16 @@ void ABasePlayer::BeginPlay()
 	
 	MannyAnimRef = Cast<UMannequinAnimInstance>(GetMesh()->GetAnimInstance());
 	
+	// GetMesh()->SetTickGroup(TG_PostUpdateWork);
+	
 }
 
 // Called every frame
 void ABasePlayer::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	
+	SetPitch();
 }
 
 // Called to bind functionality to input
@@ -102,6 +106,11 @@ void ABasePlayer::Look(const FInputActionValue& Value)
 	const FVector2D Vec = Value.Get<FVector2D>();
 	AddControllerPitchInput(-Vec.Y * VSen);
 	AddControllerYawInput(Vec.X * HSen);
+}
+
+void ABasePlayer::SetPitch()
+{
+	if (HasAuthority() || IsLocallyControlled()) Pitch = GetController()->GetControlRotation().Pitch;
 }
 
 void ABasePlayer::OnRep_CurrentItem()

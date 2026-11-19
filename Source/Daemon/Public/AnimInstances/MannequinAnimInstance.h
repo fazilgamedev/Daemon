@@ -50,7 +50,7 @@ public:
 	void SetSightTramsform();
 	
 	UFUNCTION()
-	void SetRelativeSightTransform();
+	void SetRelativeHandTransform();
 	
 	UFUNCTION()
 	void OnCurrentItemChanged();

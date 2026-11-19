@@ -56,6 +56,7 @@ void AItem::OnInteract_Implementation(ABasePlayer* Interactor)
 	if (Interactor->CurrentItem) Interactor->SR_DropCurrent_Implementation();
 	Interactor->CurrentItem = this;
 	if (HasAuthority()) Interactor->OnRep_CurrentItem();
+	// AddTickPrerequisiteComponent(Interactor->GetMesh());
 }
 
 void AItem::StopUse_Implementation()
@@ -83,5 +84,6 @@ void AItem::OnDetach_Implementation(ABasePlayer* Interactor, float VelocityToDet
 	Interactor->CurrentItem = nullptr;
 	if (HasAuthority()) Interactor->OnRep_CurrentItem();
 	SetOwner(nullptr);
+	// RemoveTickPrerequisiteComponent(Interactor->GetMesh());
 }
 
