@@ -56,10 +56,12 @@ void ABasePlayer::BeginPlay()
 	Super::BeginPlay();
 	
 	PC_Ref = Cast<ABasePlayerController>(GetController());
-	if (!PC_Ref) return;
-	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC_Ref->GetLocalPlayer());
-	if (!Subsystem && !IMC_Default) return;
-	Subsystem->AddMappingContext(IMC_Default, 0);
+	if (PC_Ref)
+	{
+		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC_Ref->GetLocalPlayer());
+		if (!Subsystem && !IMC_Default) return;
+		Subsystem->AddMappingContext(IMC_Default, 0);
+	}
 	
 	MannyAnimRef = Cast<UMannequinAnimInstance>(GetMesh()->GetAnimInstance());
 	if (MannyAnimRef) UE_LOG(LogTemp, Warning, TEXT("AnimBP is Valid"));

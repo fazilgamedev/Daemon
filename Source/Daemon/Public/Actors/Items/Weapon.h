@@ -52,6 +52,9 @@ public:
 	UParticleSystem* HitEfx;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SightOffset;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float VerticalRecoil;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -111,7 +114,14 @@ public:
 	void LineTrace(ABasePlayer* User);
 	
 	UFUNCTION(NetMulticast, Reliable)
-	void MC_Fire(FVector SpawnLocation, FRotator SpawnRotation);
+	void MC_Fire(ABasePlayer* User, bool bHit, FVector SpawnLocation, FRotator SpawnRotation);
+	
+	UFUNCTION()
+	void AddRecoil(ABasePlayer* User);
 	
 	virtual TArray<float> GetRecoilVals_Implementation() override;
+	
+	virtual float GetSightOffset_Implementation() override;
+	
+	
 };

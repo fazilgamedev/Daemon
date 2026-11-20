@@ -83,10 +83,6 @@ void AWeapon::StopUse_Implementation()
 
 void AWeapon::LineTrace(ABasePlayer* User)
 {
-	UMannequinAnimInstance* tmp = Cast<UMannequinAnimInstance>(User->GetMesh()->GetAnimInstance());
-	// if (User->MannyAnimRef) User->MannyAnimRef->Firing();
-	// else UE_LOG(LogTemp, Warning, TEXT("AnimBP Not valid"));
-	if (tmp) tmp->Firing();
 	FVector S = User->Camera->GetComponentLocation();
 	FVector E = S + Range * User->GetBaseAimRotation().Vector();
 	FCollisionQueryParams Params;
@@ -100,18 +96,36 @@ void AWeapon::LineTrace(ABasePlayer* User)
 		if (!HitActor) return;
 		UE_LOG(LogTemp, Warning, TEXT("Name of the hit actor is %s"), *OutHit.GetActor()->GetName());
 		UGameplayStatics::ApplyDamage(HitActor, Damage, User->PC_Ref, User, UDamageType::StaticClass());
-		MC_Fire(OutHit.ImpactPoint, OutHit.ImpactNormal.Rotation());
 	}
+	MC_Fire(User, bHit, OutHit.ImpactPoint, OutHit.ImpactNormal.Rotation());
+}
+
+void AWeapon::AddRecoil(ABasePlayer* User)
+{
+	User->AddControllerPitchInput(-RecoilVals[6]);
+	User->AddControllerYawInput(FMath::RandRange(RecoilVals[7], RecoilVals[8]));
 }
 
 TArray<float> AWeapon::GetRecoilVals_Implementation()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Getting Recoil Vals"));
 	return RecoilVals;
 }
 
-void AWeapon::MC_Fire_Implementation(FVector SpawnLocation, FRotator SpawnRotation)
+float AWeapon::GetSightOffset_Implementation()
 {
-	if (!HitEfx && GetWorld()) return;
-	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), HitEfx, SpawnLocation, SpawnRotation);
+	return SightOffset;
+}
+
+void AWeapon::MC_Fire_Implementation(ABasePlayer* User, bool bHit, FVector SpawnLocation, FRotator SpawnRotation)
+{
+	if (User && User->MannyAnimRef) User->MannyAnimRef->Firing();
+	else UE_LOG(LogTemp, Warning, TEXT("AnimBP Not valid"));
+	AddRecoil(User);
+	if (bHit)
+	{
+		if (!HitEfx && GetWorld()) return;
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), HitEfx, SpawnLocation, SpawnRotation);
+	}
 }
 

@@ -17,7 +17,7 @@ void UMannequinAnimInstance::NativeInitializeAnimation()
 	if (!PlayerRef) return;
 	PlayerRef->OnCurrentItemChangedSignature.AddDynamic(this, &UMannequinAnimInstance::OnCurrentItemChanged);
 	PlayerRef->OnAimStateChanged.AddDynamic(this, &UMannequinAnimInstance::OnADSChanged);
-	OldRotation = PlayerRef->GetControlRotation();
+	OldRotation = PlayerRef->IsLocallyControlled() ? PlayerRef->GetControlRotation() : PlayerRef->GetBaseAimRotation();
 	
 	
 	CurrentItem = PlayerRef->CurrentItem;
@@ -33,32 +33,25 @@ void UMannequinAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	Velocity = PlayerRef->GetVelocity();
 	Speed = Velocity.Size2D();
 	Direction = CalculateDirection(Velocity, PlayerRef->GetActorRotation());
-	
 	// const FRotator TargetAimRotation = PlayerRef->IsLocallyControlled()
 	// 	? PlayerRef->GetControlRotation()
 	// 	: PlayerRef->GetBaseAimRotation();
 	// AimRotation = PlayerRef->IsLocallyControlled()
 	// 	? TargetAimRotation
 	// 	: FMath::RInterpTo(AimRotation, TargetAimRotation, DeltaSeconds, 15.f);
-	
 	AimRotation = PlayerRef->IsLocallyControlled() ? PlayerRef->GetControlRotation() : PlayerRef->GetBaseAimRotation();
 	float p = AimRotation.Pitch;
 	Pitch = (p > 180.f ? 360 - p : -p) / 3;
-	
 	DirectionalRotation(SideMove, PlayerRef->SideMove, DeltaSeconds, 1.f, 6.f, 11.f);
 	DirectionalRotation(FrontMove, PlayerRef->FrontMove, DeltaSeconds, 1.f, 4.f, 10.f);
-
 	WalkAnim(DeltaSeconds);
-
 	HandSway(DeltaSeconds);
-	
 	if (!(CurrentItem && CurrentItem->ItemType == EItemType::Weapon))
 	{
 		SightTransform = RelativeHandTransform = LHIKTransform = FTransform::Identity;
 		LHIKAlpha = 0.f;
 		return;
 	}
-	
 	LHIKAlpha = 1.f;
 	SetSightTransform();
 	SetRelativeHandTransform();
@@ -73,9 +66,9 @@ void UMannequinAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 void UMannequinAnimInstance::SetSightTransform()
 {
 	if (!(PlayerRef && CurrentItem)) return;
-	const FTransform Tmp = PlayerRef->Camera->GetComponentTransform().GetRelativeTransform(PlayerRef->GetMesh()->GetSocketTransform(FName("head")));
-	// const FTransform Tmp = FTransform(AimRotation, PlayerRef->Camera->GetComponentTransform().GetLocation()).GetRelativeTransform(PlayerRef->GetMesh()->GetSocketTransform(FName("head")));
-	SightTransform = FTransform(Tmp.GetRotation().Rotator(),  Tmp.GetRotation().GetForwardVector() * CurrentItem->SightOffset + Tmp.GetLocation());
+	// const FTransform Tmp = PlayerRef->Camera->GetComponentTransform().GetRelativeTransform(PlayerRef->GetMesh()->GetSocketTransform(FName("head")));
+	const FTransform Tmp = FTransform(AimRotation, PlayerRef->Camera->GetComponentTransform().GetLocation()).GetRelativeTransform(PlayerRef->GetMesh()->GetSocketTransform(FName("head")));
+	SightTransform = FTransform(Tmp.GetRotation().Rotator(),  Tmp.GetRotation().GetForwardVector() * IWeaponInterface::Execute_GetSightOffset(CurrentItem) + Tmp.GetLocation());
 }
 
 void UMannequinAnimInstance::SetRelativeHandTransform()
@@ -120,7 +113,7 @@ void UMannequinAnimInstance::WalkAnim(float DeltaTime)
 
 void UMannequinAnimInstance::HandSway(float DeltaTime)
 {
-	FRotator CurrentRotation = PlayerRef->GetControlRotation();
+	FRotator CurrentRotation = AimRotation;
 	// Clamp if needed
 	TurnRotation = FMath::RInterpTo(TurnRotation, CurrentRotation - OldRotation, DeltaTime, 10.f);
 	TurnRotation.Roll = TurnRotation.Pitch * -1.f;
@@ -148,16 +141,14 @@ void UMannequinAnimInstance::InterpResetRecoil(float DeltaTime)
 
 void UMannequinAnimInstance::Firing()
 {
-	// if (CurrentItem && CurrentItem->StaticClass()->ImplementsInterface(UWeaponInterface::StaticClass()))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Firing"));
-		TArray<float> RecoilVals = IWeaponInterface::Execute_GetRecoilVals(CurrentItem);
-		FVector RecoilLocation = RecoilResetTransform.GetLocation();
-		RecoilLocation += FVector(FMath::RandRange(-RecoilVals[4], RecoilVals[4]), FMath::RandRange(RecoilVals[3], -RecoilVals[3]), FMath::RandRange(-RecoilVals[5], RecoilVals[5]));
-		FRotator RocoilRotation = RecoilResetTransform.GetRotation().Rotator();
-		RocoilRotation += FRotator(FMath::RandRange(-RecoilVals[1], RecoilVals[1]), FMath::RandRange(-RecoilVals[2], RecoilVals[2]), FMath::RandRange(RecoilVals[0], -RecoilVals[0]));
-		RecoilResetTransform.SetRotation(RocoilRotation.Quaternion());
-		RecoilResetTransform.SetLocation(RecoilLocation);
-	}
+	UE_LOG(LogTemp, Warning, TEXT("Firing"));
+	TArray<float> RecoilVals = IWeaponInterface::Execute_GetRecoilVals(CurrentItem);
+	FVector RecoilLocation = RecoilResetTransform.GetLocation();
+	RecoilLocation += FVector(FMath::RandRange(-RecoilVals[4], RecoilVals[4]), FMath::RandRange(RecoilVals[3], -RecoilVals[3]), FMath::RandRange(-RecoilVals[5], RecoilVals[5]));
+	FRotator RocoilRotation = RecoilResetTransform.GetRotation().Rotator();
+	RocoilRotation += FRotator(FMath::RandRange(-RecoilVals[1], RecoilVals[1]), FMath::RandRange(-RecoilVals[2], RecoilVals[2]), FMath::RandRange(-RecoilVals[0], -RecoilVals[0] * 2.f));
+	RecoilResetTransform.SetRotation(RocoilRotation.Quaternion());
+	RecoilResetTransform.SetLocation(RecoilLocation);
 }
+
 

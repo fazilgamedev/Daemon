@@ -121,7 +121,7 @@ public:
 	UFUNCTION()
 	void InterpResetRecoil(float DeltaTime);
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void Firing();
 
 	

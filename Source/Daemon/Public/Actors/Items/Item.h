@@ -39,9 +39,6 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UTexture2D* ItemIcon;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float SightOffset;
 
 protected:
 	// Called when the game starts or when spawned

@@ -25,4 +25,8 @@ public:
 	
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	TArray<float> GetRecoilVals();
+	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	float GetSightOffset();
+	
 };
