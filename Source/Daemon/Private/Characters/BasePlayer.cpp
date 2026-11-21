@@ -26,10 +26,10 @@ ABasePlayer::ABasePlayer()
 	
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(FName("CameraBoom"));
 	CameraBoom->SetupAttachment(GetMesh(), FName("CamSocket"));
-	CameraBoom->TargetArmLength = 150.f;
+	CameraBoom->TargetArmLength = 0.f;
 		
 	Camera = CreateDefaultSubobject<UCameraComponent>(FName("Camera"));
-	Camera->SetupAttachment(CameraBoom, FName("SpringEndPoint"));
+	Camera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	Camera->SetFieldOfView(120.f);
 	// Camera->bUsePawnControlRotation = true;
 	// Camera->SetupAttachment(GetMesh(), FName("head"));
@@ -61,7 +61,7 @@ void ABasePlayer::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	HealthComponent->OnDeathSignature.AddDynamic(this, &ABasePlayer::SR_OnDeath);
+	if (HasAuthority()) HealthComponent->OnDeathSignature.AddDynamic(this, &ABasePlayer::SR_OnDeath);
 	
 	PC_Ref = Cast<ABasePlayerController>(GetController());
 	if (PC_Ref)
@@ -196,17 +196,26 @@ void ABasePlayer::SR_OnDeath_Implementation()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Dying"));
 	HealthComponent->Health = 0.f;
+	SR_DropCurrent();
 	GetCharacterMovement()->DisableMovement();
-	GetCharacterMovement()->SetMovementMode(MOVE_None);
-	MC_OnDeath();
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (DeathAnims.Num() > 0) MC_OnDeath(FMath::RandRange(0, DeathAnims.Num() - 1));
+	CT_OnDeath();
 	FTimerHandle FDeathDestroyHandle;
 	GetWorldTimerManager().SetTimer(FDeathDestroyHandle,    FTimerDelegate::CreateWeakLambda(this, [this](){ Destroy(); }), AfterDeathDestroyDelay, false);
 }
 
-void ABasePlayer::MC_OnDeath_Implementation()
+void ABasePlayer::MC_OnDeath_Implementation(int32 AnimIndex)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Dying with Animation"));
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (DeathAnims.IsValidIndex(AnimIndex)) GetMesh()->PlayAnimation(DeathAnims[AnimIndex], false);
+}
+
+void ABasePlayer::CT_OnDeath_Implementation()
+{
 	FInputModeUIOnly IMUIOnly;
 	IMUIOnly.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	if (IsLocallyControlled() && PC_Ref && PC_Ref->IsLocalController())
@@ -214,8 +223,16 @@ void ABasePlayer::MC_OnDeath_Implementation()
 		PC_Ref->SetInputMode(IMUIOnly);
 		PC_Ref->bShowMouseCursor = true;
 	}
-	if (DeathAnims.Num() <= 0) return;
-	GetMesh()->PlayAnimation(DeathAnims[FMath::RandRange(0, DeathAnims.Num() - 1)], false);
+	CameraBoom->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("root"));
+	Camera->AttachToComponent(CameraBoom, FAttachmentTransformRules::SnapToTargetNotIncludingScale, USpringArmComponent::SocketName);
+	CameraBoom->SetRelativeLocation(FVector::ZeroVector);
+	Camera->SetRelativeLocation(FVector::ZeroVector);
+	Camera->SetRelativeRotation(FRotator::ZeroRotator);
+	CameraBoom->bUsePawnControlRotation = false;
+	Camera->bUsePawnControlRotation = false;
+	CameraBoom->bDoCollisionTest = false;
+	CameraBoom->SetRelativeRotation(FRotator(-90.f, 0.f, 0.f));
+	CameraBoom->TargetArmLength = 300.f;
 }
 
 void ABasePlayer::SR_Interact_Implementation()

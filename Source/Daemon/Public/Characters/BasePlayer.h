@@ -160,7 +160,10 @@ protected:
 	void SR_OnDeath();
 	
 	UFUNCTION(NetMulticast, Reliable)
-	void MC_OnDeath();
+	void MC_OnDeath(int32 AnimIndex);
+	
+	UFUNCTION(Client, Reliable)
+	void CT_OnDeath();
 	
 	UFUNCTION(Server, Reliable)
 	void SR_Use();
