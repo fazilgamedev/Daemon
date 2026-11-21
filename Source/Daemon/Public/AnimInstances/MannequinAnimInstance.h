@@ -50,8 +50,12 @@ public:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float LHIKAlpha;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float AimAlpha;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MinAimAlpha;
 	
 	UPROPERTY()
 	bool bInterpAiming;
@@ -84,6 +88,8 @@ public:
 	FTransform RecoilResetTransform;
 	
 	virtual void NativeInitializeAnimation() override;
+	
+	virtual void NativeUninitializeAnimation() override;
 	
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 	

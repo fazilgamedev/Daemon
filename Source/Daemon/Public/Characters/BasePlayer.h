@@ -55,6 +55,9 @@ public:
 	UInputAction* IA_Aim;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UInputAction* IA_Sprint;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	USpringArmComponent* CameraBoom;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -74,6 +77,12 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float HSen;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float WalkSpeed;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SprintSpeed;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_CurrentItem)
 	AItem* CurrentItem;
@@ -111,6 +120,13 @@ public:
 	UPROPERTY()
 	FVector CurrentAmp;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<UAnimSequence*> DeathAnims;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float AfterDeathDestroyDelay;
+	
+	
 	
 protected:
 	// Called when the game starts or when spawned
@@ -143,6 +159,9 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void SR_OnDeath();
 	
+	UFUNCTION(NetMulticast, Reliable)
+	void MC_OnDeath();
+	
 	UFUNCTION(Server, Reliable)
 	void SR_Use();
 	
@@ -155,7 +174,11 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void SR_StopADS();
 	
+	UFUNCTION(Server, Reliable)
+	void SR_Sprint();
 	
+	UFUNCTION(Server, Reliable)
+	void SR_StopSprint();
 	
 	
 	

@@ -15,14 +15,24 @@ void UMannequinAnimInstance::NativeInitializeAnimation()
 	
 	PlayerRef = Cast<ABasePlayer>(TryGetPawnOwner());
 	if (!PlayerRef) return;
-	PlayerRef->OnCurrentItemChangedSignature.AddDynamic(this, &UMannequinAnimInstance::OnCurrentItemChanged);
-	PlayerRef->OnAimStateChanged.AddDynamic(this, &UMannequinAnimInstance::OnADSChanged);
+	PlayerRef->OnCurrentItemChangedSignature.AddUniqueDynamic(this, &UMannequinAnimInstance::OnCurrentItemChanged);
+	PlayerRef->OnAimStateChanged.AddUniqueDynamic(this, &UMannequinAnimInstance::OnADSChanged);
 	OldRotation = PlayerRef->IsLocallyControlled() ? PlayerRef->GetControlRotation() : PlayerRef->GetBaseAimRotation();
 	
 	
 	CurrentItem = PlayerRef->CurrentItem;
 	if (!CurrentItem) return;
 	
+}
+
+void UMannequinAnimInstance::NativeUninitializeAnimation()
+{
+	Super::NativeUninitializeAnimation();
+	if (PlayerRef)
+	{
+		PlayerRef->OnCurrentItemChangedSignature.RemoveDynamic(this, &UMannequinAnimInstance::OnCurrentItemChanged);
+		PlayerRef->OnAimStateChanged.RemoveDynamic(this, &UMannequinAnimInstance::OnADSChanged);
+	}
 }
 
 void UMannequinAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -95,8 +105,8 @@ void UMannequinAnimInstance::OnCurrentItemChanged()
 
 void UMannequinAnimInstance::InterpAiming(float DeltaTime)
 {
-	AimAlpha = FMath::FInterpTo(AimAlpha, bIsAiming ? 1.f : .95f /*0.f*/, DeltaTime, 10.f);
-	if (AimAlpha <= .95f /*0.f*/ || AimAlpha >= 1.f) bInterpAiming = false;
+	AimAlpha = FMath::FInterpTo(AimAlpha, bIsAiming ? 1.f : MinAimAlpha, DeltaTime, 10.f);
+	if (AimAlpha <= MinAimAlpha || AimAlpha >= 1.f) bInterpAiming = false;
 }
 
 void UMannequinAnimInstance::OnADSChanged(bool bADS)

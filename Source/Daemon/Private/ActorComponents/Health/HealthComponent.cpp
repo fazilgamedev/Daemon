@@ -20,6 +20,7 @@ UHealthComponent::UHealthComponent()
 	MaxHealth = 100.f;
 	Health = MaxHealth;
 	bIsDead = false;
+	bAutoDestroyOnOwnerDeath = true;
 
 }
 
@@ -90,6 +91,6 @@ void UHealthComponent::SR_OnTakeDamage_Implementation(AActor* DamagedActor, floa
 void UHealthComponent::DefaultDeath()
 {
 	if (!GetOwner() || GetOwnerRole() != ROLE_Authority) return;
-	GetOwner()->Destroy();
+	if (bAutoDestroyOnOwnerDeath) GetOwner()->Destroy();
 }
 

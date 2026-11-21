@@ -37,6 +37,9 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnDeathSignature OnDeathSignature;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bAutoDestroyOnOwnerDeath;
+	
 	UFUNCTION()
 	void OnRep_Health(float OldHealth);
 

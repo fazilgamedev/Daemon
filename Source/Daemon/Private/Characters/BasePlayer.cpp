@@ -3,6 +3,7 @@
 
 #include "Daemon/Public/Characters/BasePlayer.h"
 
+#include "Components/CapsuleComponent.h"
 #include "Components/PostProcessComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "EnhancedInputSubsystems.h"
@@ -13,6 +14,7 @@
 #include "AnimInstances/MannequinAnimInstance.h"
 #include "Camera/CameraComponent.h"
 #include "Controllers/BasePlayerController.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 
 
@@ -32,15 +34,19 @@ ABasePlayer::ABasePlayer()
 	// Camera->bUsePawnControlRotation = true;
 	// Camera->SetupAttachment(GetMesh(), FName("head"));
 
-	PPComp = CreateDefaultSubobject<UPostProcessComponent>(FName("PPComp"));
-	PPComp->bUnbound = false;
+	// PPComp = CreateDefaultSubobject<UPostProcessComponent>(FName("PPComp"));
+	// PPComp->bUnbound = false;
 	
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(FName("HealthComponent"));
-	HealthComponent->OnDeathSignature.AddDynamic(this, &ABasePlayer::SR_OnDeath);
+	HealthComponent->bAutoDestroyOnOwnerDeath = false;
 	
 	CurrentItem = nullptr;
 	
 	// OnAimStateChanged.AddDynamic(this, &ABasePlayer::OnADS);
+	
+	SR_StopSprint();
+	
+	DeathAnims.Init(nullptr, 3);
 	
 }
 
@@ -54,6 +60,8 @@ void ABasePlayer::OnRep_bIsAiming()
 void ABasePlayer::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	HealthComponent->OnDeathSignature.AddDynamic(this, &ABasePlayer::SR_OnDeath);
 	
 	PC_Ref = Cast<ABasePlayerController>(GetController());
 	if (PC_Ref)
@@ -110,6 +118,8 @@ void ABasePlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	EIC->BindAction(IA_UseItem, ETriggerEvent::Completed, this, &ABasePlayer::SR_StopUse);
 	EIC->BindAction(IA_Aim, ETriggerEvent::Triggered, this, &ABasePlayer::SR_ADS);
 	EIC->BindAction(IA_Aim, ETriggerEvent::Completed, this, &ABasePlayer::SR_StopADS);
+	EIC->BindAction(IA_Sprint, ETriggerEvent::Started, this, &ABasePlayer::SR_Sprint);
+	EIC->BindAction(IA_Sprint, ETriggerEvent::Completed, this, &ABasePlayer::SR_StopSprint);
 }
 
 void ABasePlayer::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -138,6 +148,16 @@ void ABasePlayer::Look(const FInputActionValue& Value)
 	const FVector2D Vec = Value.Get<FVector2D>();
 	AddControllerPitchInput(-Vec.Y * VSen);
 	AddControllerYawInput(Vec.X * HSen);
+}
+
+void ABasePlayer::SR_StopSprint_Implementation()
+{
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+}
+
+void ABasePlayer::SR_Sprint_Implementation()
+{
+	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
 }
 
 void ABasePlayer::SR_StopADS_Implementation()
@@ -176,7 +196,26 @@ void ABasePlayer::SR_OnDeath_Implementation()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Dying"));
 	HealthComponent->Health = 0.f;
-	Destroy();
+	GetCharacterMovement()->DisableMovement();
+	GetCharacterMovement()->SetMovementMode(MOVE_None);
+	MC_OnDeath();
+	FTimerHandle FDeathDestroyHandle;
+	GetWorldTimerManager().SetTimer(FDeathDestroyHandle,    FTimerDelegate::CreateWeakLambda(this, [this](){ Destroy(); }), AfterDeathDestroyDelay, false);
+}
+
+void ABasePlayer::MC_OnDeath_Implementation()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Dying with Animation"));
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	FInputModeUIOnly IMUIOnly;
+	IMUIOnly.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	if (IsLocallyControlled() && PC_Ref && PC_Ref->IsLocalController())
+	{
+		PC_Ref->SetInputMode(IMUIOnly);
+		PC_Ref->bShowMouseCursor = true;
+	}
+	if (DeathAnims.Num() <= 0) return;
+	GetMesh()->PlayAnimation(DeathAnims[FMath::RandRange(0, DeathAnims.Num() - 1)], false);
 }
 
 void ABasePlayer::SR_Interact_Implementation()

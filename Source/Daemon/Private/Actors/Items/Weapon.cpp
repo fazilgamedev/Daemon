@@ -102,6 +102,7 @@ void AWeapon::LineTrace(ABasePlayer* User)
 
 void AWeapon::AddRecoil(ABasePlayer* User)
 {
+	if (!User) return;
 	User->AddControllerPitchInput(-RecoilVals[6]);
 	User->AddControllerYawInput(FMath::RandRange(RecoilVals[7], RecoilVals[8]));
 }
