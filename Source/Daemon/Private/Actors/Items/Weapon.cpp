@@ -83,6 +83,11 @@ void AWeapon::StopUse_Implementation()
 
 void AWeapon::LineTrace(ABasePlayer* User)
 {
+	if (!(User && GetOwner()))
+	{
+		StopUse();
+		return;
+	}
 	FVector S = User->Camera->GetComponentLocation();
 	FVector E = S + Range * User->GetBaseAimRotation().Vector();
 	FCollisionQueryParams Params;

@@ -58,6 +58,9 @@ public:
 	UInputAction* IA_Sprint;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UInputAction* IA_Slide;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	USpringArmComponent* CameraBoom;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -84,6 +87,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float SprintSpeed;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SlideSpeed;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_CurrentItem)
 	AItem* CurrentItem;
 	
@@ -93,6 +99,12 @@ public:
 	UPROPERTY()
 	FOnCurrentItemChangedSignature OnCurrentItemChangedSignature;
 	
+	UPROPERTY(ReplicatedUsing = OnRep_bIsUsingCurrentItem)
+	bool bIsUsingCurrentItem;
+	
+	UFUNCTION()
+	void OnRep_bIsUsingCurrentItem();
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UMannequinAnimInstance* MannyAnimRef;
 	
@@ -101,6 +113,18 @@ public:
 
 	UFUNCTION()
 	void OnRep_bIsAiming();
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_bIsSprinting)
+	bool bIsSprinting;
+	
+	UFUNCTION()
+	void OnRep_bIsSprinting();
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_bIsSliding)
+	bool bIsSliding;
+	
+	UFUNCTION()
+	void OnRep_bIsSliding();
 	
 	UPROPERTY()
 	FOnAimStateChangedSignature OnAimStateChanged;
@@ -126,7 +150,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float AfterDeathDestroyDelay;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UAnimMontage* SlideMontage;
 	
+	UPROPERTY()
+	FVector SlideDirection;
 	
 protected:
 	// Called when the game starts or when spawned
@@ -146,6 +174,9 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	void Look(const FInputActionValue& Value);
+	
+	UFUNCTION()
+	void OnSlideMontageEnded(UAnimMontage* AnimMontage, bool bInterrupted);
 	
 	
 protected:
@@ -182,6 +213,9 @@ protected:
 	
 	UFUNCTION(Server, Reliable)
 	void SR_StopSprint();
+	
+	UFUNCTION(Server, Reliable)
+	void SR_Slide();
 	
 	
 	

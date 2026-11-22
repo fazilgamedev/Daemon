@@ -27,12 +27,12 @@ ABasePlayer::ABasePlayer()
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(FName("CameraBoom"));
 	CameraBoom->SetupAttachment(GetMesh(), FName("CamSocket"));
 	CameraBoom->TargetArmLength = 0.f;
+	CameraBoom->bUsePawnControlRotation = true;
 		
 	Camera = CreateDefaultSubobject<UCameraComponent>(FName("Camera"));
 	Camera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	Camera->SetFieldOfView(120.f);
-	// Camera->bUsePawnControlRotation = true;
-	// Camera->SetupAttachment(GetMesh(), FName("head"));
+	Camera->bUsePawnControlRotation = true;
 
 	// PPComp = CreateDefaultSubobject<UPostProcessComponent>(FName("PPComp"));
 	// PPComp->bUnbound = false;
@@ -42,9 +42,10 @@ ABasePlayer::ABasePlayer()
 	
 	CurrentItem = nullptr;
 	
-	// OnAimStateChanged.AddDynamic(this, &ABasePlayer::OnADS);
+	bIsSprinting = false;
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 	
-	SR_StopSprint();
+	SlideDirection = FVector::ZeroVector;
 	
 	DeathAnims.Init(nullptr, 3);
 	
@@ -52,8 +53,26 @@ ABasePlayer::ABasePlayer()
 
 void ABasePlayer::OnRep_bIsAiming()
 {
-	if (!(CurrentItem && CurrentItem->ItemType == EItemType::Weapon)) return;
+	// if (!(CurrentItem && CurrentItem->ItemType == EItemType::Weapon)) return;
 	OnAimStateChanged.Broadcast(bIsAiming);
+}
+
+void ABasePlayer::OnRep_bIsSprinting()
+{
+	GetCharacterMovement()->MaxWalkSpeed = bIsSprinting ? SprintSpeed : WalkSpeed;
+}
+
+void ABasePlayer::OnRep_bIsSliding()
+{
+	GetCharacterMovement()->MaxWalkSpeed = bIsSliding ? SlideSpeed : bIsSprinting ? SprintSpeed : WalkSpeed;
+	if (!bIsSliding) return;
+	SlideDirection = GetActorForwardVector();
+	if (!(MannyAnimRef && SlideMontage && !MannyAnimRef->Montage_IsPlaying(SlideMontage))) return;
+	float Duration = MannyAnimRef->Montage_Play(SlideMontage);
+	if (Duration <= 0.f) return;
+	FOnMontageEnded OnSlideMontageEnded;
+	OnSlideMontageEnded.BindUObject(this, &ABasePlayer::OnSlideMontageEnded);
+	MannyAnimRef->Montage_SetEndDelegate(OnSlideMontageEnded, SlideMontage);
 }
 
 // Called when the game starts or when spawned
@@ -67,7 +86,7 @@ void ABasePlayer::BeginPlay()
 	if (PC_Ref)
 	{
 		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC_Ref->GetLocalPlayer());
-		if (!Subsystem && !IMC_Default) return;
+		if (!Subsystem || !IMC_Default) return;
 		Subsystem->AddMappingContext(IMC_Default, 0);
 	}
 	
@@ -80,6 +99,11 @@ void ABasePlayer::BeginPlay()
 void ABasePlayer::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	
+	if (bIsSliding && IsLocallyControlled())
+	{
+		AddMovementInput(SlideDirection, 1.f);
+	}
 	
 	float Speed = GetVelocity().Size2D();
 	float TargetFreq = 0.f;
@@ -116,10 +140,11 @@ void ABasePlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	EIC->BindAction(IA_DropCurrent, ETriggerEvent::Triggered, this, &ABasePlayer::SR_DropCurrent);
 	EIC->BindAction(IA_UseItem, ETriggerEvent::Started, this, &ABasePlayer::SR_Use);
 	EIC->BindAction(IA_UseItem, ETriggerEvent::Completed, this, &ABasePlayer::SR_StopUse);
-	EIC->BindAction(IA_Aim, ETriggerEvent::Triggered, this, &ABasePlayer::SR_ADS);
+	EIC->BindAction(IA_Aim, ETriggerEvent::Started, this, &ABasePlayer::SR_ADS);
 	EIC->BindAction(IA_Aim, ETriggerEvent::Completed, this, &ABasePlayer::SR_StopADS);
 	EIC->BindAction(IA_Sprint, ETriggerEvent::Started, this, &ABasePlayer::SR_Sprint);
 	EIC->BindAction(IA_Sprint, ETriggerEvent::Completed, this, &ABasePlayer::SR_StopSprint);
+	EIC->BindAction(IA_Slide, ETriggerEvent::Started, this, &ABasePlayer::SR_Slide);
 }
 
 void ABasePlayer::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -127,20 +152,24 @@ void ABasePlayer::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& Ou
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	DOREPLIFETIME(ABasePlayer, CurrentItem);
+	DOREPLIFETIME(ABasePlayer, bIsUsingCurrentItem);
 	DOREPLIFETIME(ABasePlayer, bIsAiming);
+	DOREPLIFETIME(ABasePlayer, bIsSprinting);
+	DOREPLIFETIME(ABasePlayer, bIsSliding);
 }
 
 void ABasePlayer::Move(const FInputActionValue& Value)
 {
+	if (bIsSliding) return;
 	const FVector2D Vec = Value.Get<FVector2D>();
-	const FRotator Yaw = FRotator(0.f, PC_Ref->GetControlRotation().Yaw, 0.f);
+	const FRotator Yaw = FRotator(0.f, GetControlRotation().Yaw, 0.f);
 	const FVector F = FRotationMatrix(Yaw).GetUnitAxis(EAxis::X);
 	const FVector R = FRotationMatrix(Yaw).GetUnitAxis(EAxis::Y);
 	AddMovementInput(F, Vec.Y);
 	AddMovementInput(R, Vec.X);	
-	if(MannyAnimRef) FrontMove = MannyAnimRef->AimAlpha > .5f ? Vec.X * .2f : Vec.X;
-	else FrontMove = Vec.X;
-	SideMove = Vec.Y * 2.f;
+	if(MannyAnimRef) FrontMove = MannyAnimRef->AimAlpha > .5f ? Vec.Y * .2f : Vec.X;
+	else FrontMove = Vec.Y;
+	SideMove = Vec.X * 2.f;
 }
 
 void ABasePlayer::Look(const FInputActionValue& Value)
@@ -150,19 +179,34 @@ void ABasePlayer::Look(const FInputActionValue& Value)
 	AddControllerYawInput(Vec.X * HSen);
 }
 
+void ABasePlayer::OnSlideMontageEnded(UAnimMontage* AnimMontage, bool bInterrupted)
+{
+	bIsSliding = false;
+	if (HasAuthority()) OnRep_bIsSliding();
+}
+
+void ABasePlayer::SR_Slide_Implementation()
+{
+	if (bIsSliding || !bIsSprinting) return;
+	bIsSliding = true;
+	if (HasAuthority()) OnRep_bIsSliding();	
+}
+
 void ABasePlayer::SR_StopSprint_Implementation()
 {
-	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	bIsSprinting = false;
+	if (HasAuthority()) OnRep_bIsSprinting();
 }
 
 void ABasePlayer::SR_Sprint_Implementation()
 {
-	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+	bIsSprinting = true;
+	if (HasAuthority()) OnRep_bIsSprinting();
 }
 
 void ABasePlayer::SR_StopADS_Implementation()
 {
-	if (!(CurrentItem && CurrentItem->ItemType == EItemType::Weapon)) return;
+	// if (!(CurrentItem && CurrentItem->ItemType == EItemType::Weapon)) return;
 	bIsAiming = false;
 	if (HasAuthority()) OnRep_bIsAiming(); 
 }
@@ -179,16 +223,26 @@ void ABasePlayer::OnRep_CurrentItem()
 	OnCurrentItemChangedSignature.Broadcast();
 }
 
+void ABasePlayer::OnRep_bIsUsingCurrentItem()
+{
+	if (!CurrentItem) return;
+	if (bIsUsingCurrentItem) CurrentItem->Use(this);
+	else CurrentItem->StopUse();
+	
+}
+
 void ABasePlayer::SR_StopUse_Implementation()
 {
 	if (!CurrentItem) return;
-	CurrentItem->StopUse();
+	bIsUsingCurrentItem = false;
+	if (HasAuthority()) OnRep_bIsUsingCurrentItem();
 }
 
 void ABasePlayer::SR_Use_Implementation()
 {
 	if (!CurrentItem) return;
-	CurrentItem->Use(this);
+	bIsUsingCurrentItem = true;
+	if (HasAuthority()) OnRep_bIsUsingCurrentItem();
 }
 
 

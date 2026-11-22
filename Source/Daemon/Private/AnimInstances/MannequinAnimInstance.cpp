@@ -76,7 +76,7 @@ void UMannequinAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 void UMannequinAnimInstance::SetSightTransform()
 {
 	if (!(PlayerRef && CurrentItem)) return;
-	// const FTransform Tmp = PlayerRef->Camera->GetComponentTransform().GetRelativeTransform(PlayerRef->GetMesh()->GetSocketTransform(FName("head")));
+	// const FTransform Tmp = /*PlayerRef->Camera->GetComponentTransform().GetRelativeTransform(*/PlayerRef->GetMesh()->GetSocketTransform(FName("head"));//);
 	const FTransform Tmp = FTransform(AimRotation, PlayerRef->Camera->GetComponentTransform().GetLocation()).GetRelativeTransform(PlayerRef->GetMesh()->GetSocketTransform(FName("head")));
 	SightTransform = FTransform(Tmp.GetRotation().Rotator(),  Tmp.GetRotation().GetForwardVector() * IWeaponInterface::Execute_GetSightOffset(CurrentItem) + Tmp.GetLocation());
 }
@@ -151,6 +151,7 @@ void UMannequinAnimInstance::InterpResetRecoil(float DeltaTime)
 
 void UMannequinAnimInstance::Firing()
 {
+	if (!(CurrentItem && CurrentItem->Implements<UWeaponInterface>())) return;
 	UE_LOG(LogTemp, Warning, TEXT("Firing"));
 	TArray<float> RecoilVals = IWeaponInterface::Execute_GetRecoilVals(CurrentItem);
 	FVector RecoilLocation = RecoilResetTransform.GetLocation();
