@@ -9,6 +9,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "ActorComponents/Health/HealthComponent.h"
+#include "ActorComponents/Movements/BasePlayerMovementComponent.h"
 #include "Actors/Interactables/Interactable.h"
 #include "Actors/Items/Item.h"
 #include "AnimInstances/MannequinAnimInstance.h"
@@ -17,11 +18,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 
-
-// Sets default values
-ABasePlayer::ABasePlayer()
+ABasePlayer::ABasePlayer(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UBasePlayerMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
-	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(FName("CameraBoom"));
@@ -40,15 +38,13 @@ ABasePlayer::ABasePlayer()
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(FName("HealthComponent"));
 	HealthComponent->bAutoDestroyOnOwnerDeath = false;
 	
+	bIsSprinting = true;
+	
 	CurrentItem = nullptr;
-	
-	bIsSprinting = false;
-	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
-	
+		
 	SlideDirection = FVector::ZeroVector;
 	
 	DeathAnims.Init(nullptr, 3);
-	
 }
 
 void ABasePlayer::OnRep_bIsAiming()
@@ -59,7 +55,6 @@ void ABasePlayer::OnRep_bIsAiming()
 
 void ABasePlayer::OnRep_bIsSprinting()
 {
-	GetCharacterMovement()->MaxWalkSpeed = bIsSprinting ? SprintSpeed : WalkSpeed;
 }
 
 void ABasePlayer::OnRep_bIsSliding()
@@ -92,6 +87,8 @@ void ABasePlayer::BeginPlay()
 	
 	MannyAnimRef = Cast<UMannequinAnimInstance>(GetMesh()->GetAnimInstance());
 	if (MannyAnimRef) UE_LOG(LogTemp, Warning, TEXT("AnimBP is Valid"));
+	
+	MovComp = Cast<UBasePlayerMovementComponent>(GetCharacterMovement());
 	
 }
 
@@ -132,7 +129,7 @@ void ABasePlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	
 	UEnhancedInputComponent* EIC = CastChecked<UEnhancedInputComponent>(PlayerInputComponent);
 	if (!EIC) return;
-	EIC->BindAction(IA_Jump, ETriggerEvent::Started, this, &ABasePlayer::Jump);
+	EIC->BindAction(IA_Jump, ETriggerEvent::Started, this, &ABasePlayer::StartJump);
 	EIC->BindAction(IA_Jump, ETriggerEvent::Completed, this, &ABasePlayer::StopJumping);
 	EIC->BindAction(IA_Move, ETriggerEvent::Triggered, this, &ABasePlayer::Move);
 	EIC->BindAction(IA_Look, ETriggerEvent::Triggered, this, &ABasePlayer::Look);
@@ -142,8 +139,8 @@ void ABasePlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	EIC->BindAction(IA_UseItem, ETriggerEvent::Completed, this, &ABasePlayer::SR_StopUse);
 	EIC->BindAction(IA_Aim, ETriggerEvent::Started, this, &ABasePlayer::SR_ADS);
 	EIC->BindAction(IA_Aim, ETriggerEvent::Completed, this, &ABasePlayer::SR_StopADS);
-	EIC->BindAction(IA_Sprint, ETriggerEvent::Started, this, &ABasePlayer::SR_Sprint);
-	EIC->BindAction(IA_Sprint, ETriggerEvent::Completed, this, &ABasePlayer::SR_StopSprint);
+	EIC->BindAction(IA_Sprint, ETriggerEvent::Started, this, &ABasePlayer::Sprint);
+	EIC->BindAction(IA_Sprint, ETriggerEvent::Completed, this, &ABasePlayer::StopSprint);
 	EIC->BindAction(IA_Slide, ETriggerEvent::Started, this, &ABasePlayer::SR_Slide);
 }
 
@@ -179,6 +176,22 @@ void ABasePlayer::Look(const FInputActionValue& Value)
 	AddControllerYawInput(Vec.X * HSen);
 }
 
+void ABasePlayer::StartJump()
+{
+	if (bIsSliding) return;
+	Jump();
+}
+
+void ABasePlayer::StopSprint()
+{
+	MovComp->SetSprint(false);
+}
+
+void ABasePlayer::Sprint()
+{
+	MovComp->SetSprint(true);
+}
+
 void ABasePlayer::OnSlideMontageEnded(UAnimMontage* AnimMontage, bool bInterrupted)
 {
 	bIsSliding = false;
@@ -192,18 +205,6 @@ void ABasePlayer::SR_Slide_Implementation()
 	if (HasAuthority()) OnRep_bIsSliding();	
 }
 
-void ABasePlayer::SR_StopSprint_Implementation()
-{
-	bIsSprinting = false;
-	if (HasAuthority()) OnRep_bIsSprinting();
-}
-
-void ABasePlayer::SR_Sprint_Implementation()
-{
-	bIsSprinting = true;
-	if (HasAuthority()) OnRep_bIsSprinting();
-}
-
 void ABasePlayer::SR_StopADS_Implementation()
 {
 	// if (!(CurrentItem && CurrentItem->ItemType == EItemType::Weapon)) return;
@@ -213,7 +214,7 @@ void ABasePlayer::SR_StopADS_Implementation()
 
 void ABasePlayer::SR_ADS_Implementation()
 {
-	if (!(CurrentItem && CurrentItem->ItemType == EItemType::Weapon)) return;
+	if (!(CurrentItem && CurrentItem->ItemType == EItemType::Weapon && !bIsSliding)) return;
 	bIsAiming = true;
 	if (HasAuthority()) OnRep_bIsAiming();
 }

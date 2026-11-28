@@ -155,7 +155,7 @@ void UMannequinAnimInstance::Firing()
 	UE_LOG(LogTemp, Warning, TEXT("Firing"));
 	TArray<float> RecoilVals = IWeaponInterface::Execute_GetRecoilVals(CurrentItem);
 	FVector RecoilLocation = RecoilResetTransform.GetLocation();
-	RecoilLocation += FVector(FMath::RandRange(-RecoilVals[4], RecoilVals[4]), FMath::RandRange(RecoilVals[3], -RecoilVals[3]), FMath::RandRange(-RecoilVals[5], RecoilVals[5]));
+	RecoilLocation += FVector(FMath::RandRange(-RecoilVals[4], RecoilVals[4]), FMath::RandRange(-RecoilVals[3] * 2, -RecoilVals[3]), FMath::RandRange(-RecoilVals[5], RecoilVals[5]));
 	FRotator RocoilRotation = RecoilResetTransform.GetRotation().Rotator();
 	RocoilRotation += FRotator(FMath::RandRange(-RecoilVals[1], RecoilVals[1]), FMath::RandRange(-RecoilVals[2], RecoilVals[2]), FMath::RandRange(-RecoilVals[0], -RecoilVals[0] * 2.f));
 	RecoilResetTransform.SetRotation(RocoilRotation.Quaternion());

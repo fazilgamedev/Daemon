@@ -49,7 +49,7 @@ void AWeapon::Use_Implementation(ABasePlayer* User)
 {
 	Super::Use_Implementation(User);
 	
-	if (!User) return;
+	if (!User || !HasAuthority()) return;
 	UseDelegate.BindUObject(this, &AWeapon::LineTrace, User);
 	switch (WeaponType)
 	{
@@ -64,10 +64,10 @@ void AWeapon::Use_Implementation(ABasePlayer* User)
 		case EFireSelect::None:
 			break;
 		case EFireSelect::SemiAuto:
-			GetWorldTimerManager().SetTimer(UseHandle, UseDelegate, 1.f / FireRate, false);
+			GetWorldTimerManager().SetTimer(UseHandle, UseDelegate, 1.f / FireRate, false, 0.f);
 			break;
 		case EFireSelect::FullAuto:
-			GetWorldTimerManager().SetTimer(UseHandle, UseDelegate, 1.f / FireRate, true);
+			GetWorldTimerManager().SetTimer(UseHandle, UseDelegate, 1.f / FireRate, true, 0.f);
 			break;
 		}
 		break;
@@ -89,7 +89,7 @@ void AWeapon::LineTrace(ABasePlayer* User)
 		return;
 	}
 	FVector S = User->Camera->GetComponentLocation();
-	FVector E = S + Range * User->GetBaseAimRotation().Vector();
+	FVector E = S + Range * User->GetBaseAimRotation().Quaternion().GetForwardVector();
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(this);
 	Params.AddIgnoredActor(User);
@@ -109,7 +109,7 @@ void AWeapon::AddRecoil(ABasePlayer* User)
 {
 	if (!(User && User->IsLocallyControlled())) return;
 	User->AddControllerPitchInput(-RecoilVals[6]);
-	User->AddControllerYawInput(FMath::RandRange(RecoilVals[7], RecoilVals[8]));
+	User->AddControllerYawInput(FMath::RandRange(-RecoilVals[7], RecoilVals[8]));
 }
 
 TArray<float> AWeapon::GetRecoilVals_Implementation()

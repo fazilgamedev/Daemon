@@ -7,6 +7,7 @@
 #include "InputActionValue.h"
 #include "BasePlayer.generated.h"
 
+class UBasePlayerMovementComponent;
 class UHealthComponent;
 class UMannequinAnimInstance;
 class UPostProcessComponent;
@@ -28,7 +29,7 @@ class DAEMON_API ABasePlayer : public ACharacter
 
 public:
 	// Sets default values for this character's properties
-	ABasePlayer();
+	ABasePlayer(const FObjectInitializer& ObjectInitializer);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UInputMappingContext* IMC_Default;
@@ -71,6 +72,9 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UHealthComponent* HealthComponent;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UBasePlayerMovementComponent* MovComp;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	ABasePlayerController* PC_Ref;
@@ -175,6 +179,15 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void Look(const FInputActionValue& Value);
 	
+	UFUNCTION(BlueprintCallable)
+	void StartJump();
+	
+	UFUNCTION(BlueprintCallable)
+	void Sprint();
+	
+	UFUNCTION(BlueprintCallable)
+	void StopSprint();
+	
 	UFUNCTION()
 	void OnSlideMontageEnded(UAnimMontage* AnimMontage, bool bInterrupted);
 	
@@ -207,12 +220,6 @@ protected:
 	
 	UFUNCTION(Server, Reliable)
 	void SR_StopADS();
-	
-	UFUNCTION(Server, Reliable)
-	void SR_Sprint();
-	
-	UFUNCTION(Server, Reliable)
-	void SR_StopSprint();
 	
 	UFUNCTION(Server, Reliable)
 	void SR_Slide();
